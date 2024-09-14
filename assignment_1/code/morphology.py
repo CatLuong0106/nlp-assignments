@@ -74,77 +74,97 @@ class Morphology:
         # print("\n")
 
     def get_results(self) -> None:
-        def dfs(word, path, source, pos):
-            for rule in self.rules:
-                if rule["ID"] not in path:
-                    if rule["OLD_POS"] == pos:
-                        if tuple(path + [rule["ID"]]) not in visited:
-                            visited.add(tuple(path))
-                        else:
-                            break
 
+        # DFS to get all possible derivations from a word
+        def dfs(word, path, source, pos):
+            # Result to be appended
+            result = {
+                "word": word,
+                "pos": pos,
+                "source": source,
+                "root": root,
+                "path": path,
+            }
+
+            # If result is unique then added to the results list
+            if result not in results:
+                results.append(result)
+
+            for rule in self.rules:
+                # There must not be two similar 'ID's for the path
+                # POS must match the 'OLD_POS'
+                if rule["ID"] not in path and rule["OLD_POS"] == pos:
+                    new_path = path + [rule["ID"]]
+                    # Check to see if new path has been visited or not to avoid infinite loop
+                    if tuple(new_path) not in visited:
+                        # Add new path to the visited set
+                        visited.add(tuple(new_path))
+
+                        # PREFIX Logic
                         if rule["AFFIX_KEY"] == "PREFIX":
                             if rule["REP"] == "-":
+                                # Prepend 'AFFIX' to word
+                                new_word = rule["AFFIX"] + word
                                 dfs(
-                                    rule["AFFIX"] + word,
-                                    path + [rule["ID"]],
+                                    new_word,
+                                    new_path,
                                     "morphology",
                                     rule["NEW_POS"],
                                 )
-                            elif word.startswith(rule[3]):
+                            elif word.startswith(rule["REP"]):
+                                # Replace the prefix of length equal to 'REP' with 'AFFIX'
+                                new_word = rule["AFFIX"] + word[len(rule["REP"]) :]
                                 dfs(
-                                    word[len(rule["AFFIX"]) :] + rule[2],
-                                    path + [rule["ID"]],
+                                    new_word,
+                                    new_path,
                                     "morphology",
                                     rule["NEW_POS"],
                                 )
 
+                        # SUFFIX Logic
                         if rule["AFFIX_KEY"] == "SUFFIX":
                             if rule["REP"] == "-":
+                                # Append 'AFFIX' to word
+                                new_word = word + rule["AFFIX"]
                                 dfs(
-                                    word + rule["AFFIX"],
-                                    path + [rule["ID"]],
+                                    new_word,
+                                    new_path,
                                     "morphology",
                                     rule["NEW_POS"],
                                 )
                             elif word.endswith(rule["REP"]):
+                                # Replace the suffix of length equal to 'REP' with 'AFFIX'
+                                new_word = word[: -len(rule["REP"])] + rule["AFFIX"]
                                 dfs(
-                                    word[: -len(rule["REP"])] + rule["AFFIX"],
-                                    path + [rule["ID"]],
+                                    new_word,
+                                    new_path,
                                     "morphology",
                                     rule["NEW_POS"],
                                 )
 
-                        result = {
-                            "word": word,
-                            "pos": pos,
-                            "source": source,
-                            "root": root,
-                            "path": path,
-                        }
-                        if result not in results:
-                            results.append(result)
-
+        # Get all possible derivations for each word in dictionary using DFS
         results = []
         for word in self.dictionary:
             visited = set()
             word_val, root, pos = word.values()
             dfs(word_val.lower(), [], "dictionary", pos)
 
-        # Print for testing:
+        self.results = results
 
+        # Print for testing:
         # pprint.pprint(results)
         # print(len(results))
 
-        self.results = results
-
-    def print_results(self):
+    def print_results(self) -> None:
         # format = "WORD=<word> POS=<pos> ROOT=<root> SOURCE=<source> PATH=<path array>"
         for word in self.test:
-            pos = self.default_pos
+            # Set of default components
             root = word
+            pos = self.default_pos
             source = self.default_source
             path_str = self.default_path
+
+            # Parameter to check if the word is found in the list of possible derivations
             used = False
             for result in self.results:
                 if result["word"] == word:
@@ -181,6 +201,7 @@ class Morphology:
                     }
                 )
 
+            # Sort printed results alphabetically by 'POS'
             self.printed_results[word].sort(key=lambda item: item["POS"])
 
         # Code for testing:
@@ -194,6 +215,7 @@ class Morphology:
         #             )
         #         f.write("\n")
 
+        # NOTE: Print to screen for grading!
         for word in self.printed_results:
             for line in self.printed_results[word]:
                 print(
@@ -203,16 +225,10 @@ class Morphology:
 
 
 def __main__():
-    # Example: python3 morphology.py Dict0.txt Rules0.txt Test0.txt
+    # NOTE:
+    # Run `python3 morphology.py Dict0.txt Rules0.txt Test0.txt`
 
     parser = ArgumentParser(description="Morphologial Analyzer")
-    # parser.add_argument(
-    #     "-p",
-    #     "--path",
-    #     default="",
-    #     required=True,
-    #     help="Insert the path of the data folder",
-    # )
 
     parser.add_argument("dict_file", type=str, help="Dictionary file")
     parser.add_argument("rules_file", type=str, help="Rules file")
