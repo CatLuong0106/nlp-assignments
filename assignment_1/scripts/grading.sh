@@ -3,8 +3,8 @@ echo '#  Grading Script  #'
 echo '####################'
 echo
 
-scoring=false
-python3 morphology.py Dict0.txt Rules0.txt Test0.txt > yourTrace.txt
+scoring=true
+python morphology.py Dict0.txt Rules0.txt Test0.txt > yourTrace.txt
 
 if $scoring; then
     missing=$( comm -13 <(sed '/^$/d' yourTrace.txt | sort ) \
